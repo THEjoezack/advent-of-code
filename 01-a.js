@@ -1,9 +1,11 @@
+// https://adventofcode.com/2018/day/1
+
 const readline = require(`readline`)
 const fs = require(`fs`)
 
 new Promise(resolve => {
   const rl = readline.createInterface({
-    input: fs.createReadStream(`inputData/frequencies.txt`),
+    input: fs.createReadStream(`inputData/01-frequencies.txt`),
     crlfDelay: Infinity
   })
 

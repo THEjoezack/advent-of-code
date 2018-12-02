@@ -1,5 +1,7 @@
+// https://adventofcode.com/2018/day/1
+
 const inputText = require(`fs`).readFileSync(
-  `inputData/frequencies.txt`,
+  `inputData/01-frequencies.txt`,
   `utf8`
 )
 const frequencyTracker = {} // initialize with 0, our starting value
