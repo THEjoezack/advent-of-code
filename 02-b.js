@@ -28,6 +28,7 @@ for (let i = 0; i < boxList.length; i++) {
     let matchingLetters = getCloseMatchLetters(boxList[i], boxList[j])
     if (matchingLetters) {
       console.log(`Common letters for close match: ${matchingLetters}`)
+      process.exit(0)
     }
   }
 }
