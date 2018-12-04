@@ -43,4 +43,4 @@ Object.keys(claims).forEach(key => {
 })
 
 const uncontestedId = Object.keys(claims).find(i => !claims[i].conflicts)
-console.log(claims[uncontestedId])
+console.log(claims[uncontestedId].id)
