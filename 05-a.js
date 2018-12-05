@@ -13,26 +13,17 @@ class List {
   react () {
     let node = this.list.next
     while (true) {
-      // same type
       if (!node.next) {
         break
       }
       if (node.value.toUpperCase() === node.next.value.toUpperCase()) {
-        // console.log(`Same type: ${node.value}:${node.next.value}`)
-        // different polarity
         if (node.value !== node.next.value) {
-          // remove both
           node = node.previous
-          // console.log(`Same polarity, removing ${node.next.value}`)
-
           this.remove(node.next)
-          // console.log(`Same polarity, removing ${node.next.value}`)
-
           this.remove(node.next)
           continue
         }
       }
-      // console.log(`No trigger: ${node.value}:${node.next.value}`)
       node = node.next
     }
   }

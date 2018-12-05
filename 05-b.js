@@ -13,7 +13,6 @@ class List {
   react () {
     let node = this.list.next
     while (true) {
-      // same type
       if (!node.next) {
         break
       }
