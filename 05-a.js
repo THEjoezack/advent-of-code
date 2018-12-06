@@ -46,6 +46,7 @@ class List {
 
 let units = require('fs').readFileSync(`inputData/05-polymer.txt`, `utf-8`)
 const list = new List(units)
+
 console.log(`Starting length: ${list.toString().length}`)
 list.react()
 console.log(list.toString())
