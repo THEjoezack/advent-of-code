@@ -1,21 +1,19 @@
 class MarbleRing {
-  // First, the marble numbered 0 is placed in the circle.
-  // The marble is both clockwise from itself and counter-clockwise from itself
-  // 0 is the current marble.
+  // Initialize with 0
   constructor () {
     this.current = { value: 0 }
     this.current.clockwise = this.current
     this.current.counterClockwise = this.current
   }
   place (value) {
-    // special case
+    // Special case, don't place 23, remove -7
     if (value % 23 === 0) {
       const removeMarble = this.removeRelative(-7)
       this.current = removeMarble.clockwise
       return value + removeMarble.value
     }
 
-    // place between the marbles that are 1 and 2 marbles clockwise
+    // Place between the marbles that are 1 and 2 marbles clockwise
     this.current = this.insert(
       value,
       this.cycle(this.current, 2),
@@ -47,32 +45,6 @@ class MarbleRing {
       distance++
     }
     return result
-  }
-  find (fn) {
-    let node = this.current
-    let startingValue = node.value
-    do {
-      if (fn(node)) {
-        return node
-      }
-      node = this.cycle(node, 1)
-    } while (node.value !== startingValue)
-  }
-  toString () {
-    let node = this.find(n => n.value === 0)
-    let startingValue = node.value
-    const result = []
-
-    do {
-      result.push(
-        this.current.value === node.value
-          ? `(${node.value})`
-          : node.value.toString()
-      )
-      node = this.cycle(node, 1)
-    } while (node.value !== startingValue)
-
-    return result.join(' ')
   }
 }
 
