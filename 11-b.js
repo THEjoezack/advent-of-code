@@ -22,7 +22,7 @@ const getSum = (startingX, startingY, size, cache) => {
     return -Infinity
   }
 
-  let sum = getCachedSum(size, startingX, startingY, cache)
+  let sum = 0
   const maxX = startingX + size - 1
   const maxY = startingY + size - 1
 
@@ -51,19 +51,30 @@ const getCacheKey = (x, y) => x * 300 + y
 initCells(2568)
 
 const max = { x: null, y: null, sum: 0, size: null }
-let cache = []
-for (size = 1; size <= 300; size++) {
-  for (let x = 1; x <= 300; x++) {
-    for (let y = 1; y <= 300; y++) {
-      const cacheKey = getCacheKey(x, y)
-      cache[cacheKey] = getSum(x, y, size, cache)
-      if (cache[cacheKey] > max.sum) {
-        max.x = x
-        max.y = y
-        max.sum = cache[cacheKey]
-        max.size = size
+
+for (let startX = 1; startX <= 300; startX++) {
+  for (let startY = 1; startY <= 300; startY++) {
+    let sum = 0
+    for (let x = startX; x < startX + size; x++) {
+      if (x > 300) {
+        break
+      }
+      for (let y = startY; y < startY + size; y++) {
+        if (y > 300) {
+          break
+        }
+        sum += cells(getCacheKey(x, y))
+        if (x === y) {
+          // we're at a square
+        }
       }
     }
+    // if (sum > max.sum) {
+    //   max.x = x
+    //   max.y = y
+    //   max.sum = cache[cacheKey]
+    //   max.size = size
+    // }
   }
 }
 console.log(max)
