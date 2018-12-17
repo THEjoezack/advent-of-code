@@ -66,9 +66,11 @@ const getNode = (x, y) => {
 
 const createUnit = node => {
   const unit = {
-    title: node.elf ? 'Elf' : 'Goblin',
+    team: node.elf ? 'Elves' : 'Goblins',
     glyph: node.elf ? 'E' : 'G',
     node: node,
+    hp: 200,
+    attackPower: 3,
     getTargets: () => {
       return node.elf ? units.goblins : units.elves
     },
@@ -97,32 +99,32 @@ const createUnit = node => {
       }
       unit.lastAction = round
 
+      let unitRange = unit.getTilesInRange()
+      unit.move(unitRange)
+      unitRange = unit.getTilesInRange()
+      unit.attack(unitRange)
+    },
+    move: unitRange => {
       // identify targets
       const targets = unit.getTargets()
       log(`Got ${targets.length} targets`)
 
       // if no targets left, game over
       if (!targets.length) {
-        log(`No more targets! ${unit.glyph} won!`)
+        log(
+          `No more targets! ${unit.team} won after ${roundCount} full rounds`,
+          1
+        )
+        drawHps(1)
         process.exit()
       }
 
-      const unitRange = unit.getTilesInRange()
-
-      unit.move(unitRange, targets)
-      unit.attack(unitRange)
-    },
-    attack: unitRange => {
       let targetsInRange = unit.getTargetTilesInRange(unitRange)
+
       if (targetsInRange.length) {
-        unit.attack(targetsInRange[0].getUnit())
+        return
       }
-      log(
-        `${unit.node.key} will attack ${target.glyph} unit: ${target.node.key}`,
-        2
-      )
-    },
-    move: (unitRange, targets) => {
+
       let destinationTiles = []
       targets.forEach(t => {
         destinationTiles = destinationTiles.concat(t.getOpenTilesInRange())
@@ -142,6 +144,34 @@ const createUnit = node => {
       moveFromNode.goblin = null
       unit.node = move
       log(`Moved ${unit.glyph} from ${moveFromNode.key} to ${unit.node.key}`)
+    },
+    attack: unitRange => {
+      let targetsInRange = unit.getTargetTilesInRange(unitRange)
+      if (targetsInRange.length) {
+        const target = unit.selectAttackTarget(targetsInRange)
+        target.hp -= unit.attackPower
+        log(
+          `${unit.node.key} attacks ${target.glyph} unit: ${
+            target.node.key
+          }, down to ${target.hp}hp`
+        )
+        if (target.hp <= 0) {
+          log(`Burying ${target.glyph} at ${target.node.key}`, 1)
+          bury(target)
+        }
+      }
+    },
+    selectAttackTarget: targetsInRange => {
+      // in a tie, the adjacent target with the fewest hit points which is first in reading order is selected.
+      let minHp = Infinity
+      let target = null
+      targetsInRange.forEach(t => {
+        if (t.getUnit().hp < minHp) {
+          target = t.getUnit()
+          minHp = t.getUnit().hp
+        }
+      })
+      return target
     },
     getMove: (destinationTiles, unitRange) => {
       const myAvailableMoves = unit.getOpenTilesInRange(unitRange)
@@ -172,8 +202,8 @@ const createUnit = node => {
         const bestPaths = unit.getAllPaths()
         log(`Getting best path to ${dt.key}`)
         const path = unit.getBestPath(dt, bestPaths)
-        if (min > path.length) {
-          console.log(
+        if (path.length && min > path.length) {
+          log(
             `${path.length} steps from ${unit.node.key} to ${
               dt.key
             } starts at ${path[1].key}`
@@ -190,6 +220,10 @@ const createUnit = node => {
       let currentKey = end.key
       while (currentKey != unit.node.key) {
         log(`Get best path, from ${unit.node.key} -> ${currentKey}`)
+        if (!allPaths[currentKey]) {
+          log(`You can't get there from here`)
+          return []
+        }
         path.push(allPaths[currentKey])
         currentKey = allPaths[currentKey].key
       }
@@ -227,12 +261,15 @@ const createUnit = node => {
   return unit
 }
 
-const getNodeByKey = key => {
-  const [x, y] = key.split('x')
-  return map[y][x]
+const bury = unit => {
+  unit.node.elf = false
+  unit.node.goblin = false
+  units.elves = units.elves.filter(u => u.node.key !== unit.node.key)
+  units.goblins = units.goblins.filter(u => u.node.key !== unit.node.key)
 }
 
 const drawMap = map => {
+  log(`After round: ${roundCount}`, 1)
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
       const unit = map[y][x].getUnit()
@@ -248,18 +285,18 @@ const drawMap = map => {
 
 let roundCount = 0
 const round = map => {
-  roundCount++
   // reading order
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
       const unit = map[y][x].getUnit()
       if (unit) {
-        log(`${unit.glyph} at ${unit.node.key} goes next`)
+        log(`${unit.glyph} at ${unit.node.key} goes next`, 1)
         unit.takeTurn(roundCount)
         // drawMap(map)
       }
     }
   }
+  roundCount++
 }
 for (let i = 0; i < 10; i++) {
   console.log('.')
@@ -269,11 +306,24 @@ const units = {
   goblins: [],
   elves: []
 }
+
+const drawHps = level => {
+  let sum = 0
+  units.elves.forEach(u => {
+    log(`${u.glyph}:${u.node.key} = ${u.hp}`, level)
+    sum += u.hp
+  })
+  units.goblins.forEach(u => {
+    log(`${u.glyph}:${u.node.key} = ${u.hp}`, level)
+    sum += u.hp
+  })
+  log(`result: ${sum * roundCount}`, level)
+}
+
 createUnits(map)
 drawMap(map)
-round(map)
-drawMap(map)
-round(map)
-drawMap(map)
-round(map)
-drawMap(map)
+while (true) {
+  round(map)
+  drawMap(map)
+  drawHps(0)
+}
