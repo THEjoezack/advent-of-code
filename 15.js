@@ -1,17 +1,19 @@
 const eol = require('os').EOL
 
 const log = (message, level) => {
-  const currentLevel = 1
-  if (currentLevel === 0 || level) {
-    // current level
-    console.log(message)
-  }
+  // if (level) {
+  console.log(message)
+  // }
 }
 
 const getBasicMap = () => {
   const map = []
   require('fs')
-    .readFileSync(`inputData/15-map.txt`, `ascii`)
+    .readFileSync(`inputData/15-map-real.txt`, `ascii`)
+    // .readFileSync(`inputData/15-map-36334.txt`, `ascii`)
+    // .readFileSync(`inputData/15-map-18740.txt`, `ascii`)
+    // .readFileSync(`inputData/15-map-28944.txt`, `ascii`)
+    // .readFileSync(`inputData/15-map-27755.txt`, `ascii`)
     .split(eol)
     .forEach(line => {
       map.push(
@@ -25,7 +27,7 @@ const getBasicMap = () => {
             goblin: glyph === 'G',
             elf: glyph === 'E',
             getUnit: () => node.elf || node.goblin,
-            isOpen: () => !node.getUnit() && node.floor === '.'
+            isOpen: () => !node.getUnit() && node.floor === '.',
           }
           return node
         })
@@ -53,7 +55,7 @@ const getNeighborNodes = node => {
     getNode(x, y - 1),
     getNode(x - 1, y),
     getNode(x + 1, y),
-    getNode(x, y + 1)
+    getNode(x, y + 1),
   ]
 }
 
@@ -72,29 +74,30 @@ const createUnit = node => {
     hp: 200,
     attackPower: 3,
     getTargets: () => {
-      return node.elf ? units.goblins : units.elves
+      return unit.glyph === 'E' ? units.goblins : units.elves
     },
     getTargetTilesInRange: range => {
-      const targetTiles = (range || unit.getTilesInRange()).filter(n => {
+      return (range || unit.getTilesInRange()).filter(n => {
         return n !== null && n.getUnit() && n.getUnit().glyph != unit.glyph
       })
-
-      return targetTiles
     },
     getOpenTilesInRange: range => {
-      return (
-        range ||
-        unit.getTilesInRange().filter(t => {
-          return t !== null && t.isOpen()
-        })
-      )
+      return (range || unit.getTilesInRange()).filter(t => {
+        return t !== null && t.isOpen()
+      })
     },
     getTilesInRange: () => {
       return getNeighborNodes(unit.node)
     },
     lastAction: null,
     takeTurn: round => {
+      log(
+        `==============================================> ${unit.glyph} at ${
+          unit.node.key
+        } goes next`
+      )
       if (unit.lastAction === round) {
+        log(`jk, already went!`)
         return
       }
       unit.lastAction = round
@@ -115,6 +118,7 @@ const createUnit = node => {
           `No more targets! ${unit.team} won after ${roundCount} full rounds`,
           1
         )
+        drawMap(map)
         drawHps(1)
         process.exit()
       }
@@ -129,7 +133,6 @@ const createUnit = node => {
       targets.forEach(t => {
         destinationTiles = destinationTiles.concat(t.getOpenTilesInRange())
       })
-      log(`TODO is it reachable?`)
       log(`${destinationTiles.length} tiles we want to move to`)
 
       const move = unit.getMove(destinationTiles, unitRange)
@@ -140,8 +143,8 @@ const createUnit = node => {
       const moveFromNode = unit.node
       move.elf = moveFromNode.elf
       move.goblin = moveFromNode.goblin
-      moveFromNode.elf = null
-      moveFromNode.goblin = null
+      moveFromNode.elf = false
+      moveFromNode.goblin = false
       unit.node = move
       log(`Moved ${unit.glyph} from ${moveFromNode.key} to ${unit.node.key}`)
     },
@@ -156,7 +159,7 @@ const createUnit = node => {
           }, down to ${target.hp}hp`
         )
         if (target.hp <= 0) {
-          log(`Burying ${target.glyph} at ${target.node.key}`, 1)
+          log(`Burying ${target.glyph} at ${target.node.key}`)
           bury(target)
         }
       }
@@ -183,43 +186,53 @@ const createUnit = node => {
 
       // Is there a move I can make that will immediately put me in range of a target?
       let move = null
-      for (let i = 0; i < myAvailableMoves.length; i++) {
-        const inRangeForMovement = destinationTiles.filter(
-          dt => dt.key === myAvailableMoves[i].key
-        )
-        if (inRangeForMovement.length) {
-          move = inRangeForMovement[0]
-          log(`Found a move that is in range of a target: ${move.key}!!`)
-          return move
-        }
-      }
+      // for (let i = 0; i < myAvailableMoves.length; i++) {
+      //   const inRangeForMovement = destinationTiles.filter(
+      //     dt => dt.key === myAvailableMoves[i].key
+      //   )
+      //   if (inRangeForMovement.length) {
+      //     move = inRangeForMovement[0]
+      //     log(`Found a move that is in range of a target: ${move.key}!!`)
+      //     console.log(destinationTiles)
+      //     return move
+      //   }
+      // }
 
       // Find the best move that wil put me closer to getting in range of an attacker
       // go through the destination tiles, find the closest, make sure it is navigable
       let min = Infinity
-      destinationTiles.forEach(dt => {
-        // TODO - do from each step in case 1 is better than another
-        const bestPaths = unit.getAllPaths()
-        log(`Getting best path to ${dt.key}`)
-        const path = unit.getBestPath(dt, bestPaths)
-        if (path.length && min > path.length) {
-          log(
-            `${path.length} steps from ${unit.node.key} to ${
-              dt.key
-            } starts at ${path[1].key}`
-          )
-          min = path.length
-          move = path[1]
-        }
+      myAvailableMoves.forEach(start => {
+        destinationTiles.forEach(dt => {
+          // TODO - do from each step in case 1 is better than another
+          const bestPaths = unit.getAllPaths(start)
+          if (!bestPaths.length) {
+            log(`No path???`)
+          }
+          log(`Getting best path to ${dt.key}`)
+          const path = unit.getBestPath(start, dt, bestPaths)
+          if (path.length && min > path.length) {
+            log(
+              `${path.length} steps from ${start.key} to ${dt.key} starts at ${
+                start.key
+              }`
+            )
+            min = path.length
+            move = start
+          }
+        })
       })
 
       return move
     },
-    getBestPath: (end, allPaths) => {
+    getBestPath: (start, end, allPaths) => {
+      if (start.key === end.key) {
+        log(`Okay, well that was easy - start was the end`)
+        return [start.key]
+      }
       const path = []
       let currentKey = end.key
-      while (currentKey != unit.node.key) {
-        log(`Get best path, from ${unit.node.key} -> ${currentKey}`)
+      while (currentKey != start.key) {
+        log(`Get best path, from ${start.key} -> ${currentKey}`)
         if (!allPaths[currentKey]) {
           log(`You can't get there from here`)
           return []
@@ -229,8 +242,7 @@ const createUnit = node => {
       }
       return path.reverse()
     },
-    getAllPaths: () => {
-      const start = unit.node
+    getAllPaths: start => {
       const unexplored = [start]
       bestPaths = {}
       bestPaths[start.key] = null
@@ -241,6 +253,10 @@ const createUnit = node => {
         const currentNeighbors = getNeighborNodes(current).filter(
           n => n != null && n.isOpen()
         )
+        // if (current.key === '5x5') {
+        //   //log(`-----------------------------------Ok...getting neighbords`)
+        //   //log(getNeighborNodes(current))
+        // }
         log(`Node ${current.key} currentNeighbors: ${currentNeighbors.length}`)
         currentNeighbors.forEach(next => {
           if (!bestPaths[next.key]) {
@@ -251,7 +267,7 @@ const createUnit = node => {
         })
       }
       return bestPaths
-    }
+    },
   }
   if (node.elf) {
     units.elves.push(unit)
@@ -269,6 +285,8 @@ const bury = unit => {
 }
 
 const drawMap = map => {
+  process.stdout.write('\033c')
+  console.log()
   log(`After round: ${roundCount}`, 1)
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
@@ -281,30 +299,29 @@ const drawMap = map => {
     }
     process.stdout.write(eol)
   }
+  console.log()
 }
 
 let roundCount = 0
 const round = map => {
   // reading order
-  for (let y = 0; y < map.length; y++) {
-    for (let x = 0; x < map[y].length; x++) {
+  const height = map.length
+  const width = map[0].length
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
       const unit = map[y][x].getUnit()
       if (unit) {
-        log(`${unit.glyph} at ${unit.node.key} goes next`, 1)
         unit.takeTurn(roundCount)
-        // drawMap(map)
       }
     }
   }
   roundCount++
 }
-for (let i = 0; i < 10; i++) {
-  console.log('.')
-}
+
 const map = getBasicMap()
 const units = {
   goblins: [],
-  elves: []
+  elves: [],
 }
 
 const drawHps = level => {
@@ -317,13 +334,16 @@ const drawHps = level => {
     log(`${u.glyph}:${u.node.key} = ${u.hp}`, level)
     sum += u.hp
   })
-  log(`result: ${sum * roundCount}`, level)
+  log(`result: ${sum} * ${roundCount}=${sum * roundCount}`, level)
 }
 
 createUnits(map)
 drawMap(map)
+
 while (true) {
   round(map)
   drawMap(map)
   drawHps(0)
 }
+
+// 222912 is too high for real
