@@ -108,17 +108,15 @@ const createUnit = node => {
       }
 
       const unitRange = unit.getTilesInRange()
-      let targetsInRange = unit.getTargetTilesInRange(unitRange)
 
-      // if in range, attack
+      unit.move(unitRange, targets)
+      unit.attack(unitRange)
+    },
+    attack: unitRange => {
+      let targetsInRange = unit.getTargetTilesInRange(unitRange)
       if (targetsInRange.length) {
         unit.attack(targetsInRange[0].getUnit())
-      } else {
-        // otherwise move
-        unit.move(unitRange, targets)
       }
-    },
-    attack: target => {
       log(
         `${unit.node.key} will attack ${target.glyph} unit: ${target.node.key}`,
         2
