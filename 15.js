@@ -2,18 +2,20 @@ const eol = require('os').EOL
 
 const log = (message, level) => {
   // if (level) {
-  console.log(message)
+  // console.log(message)
   // }
 }
 
 const getBasicMap = () => {
   const map = []
   require('fs')
-    .readFileSync(`inputData/15-map-real.txt`, `ascii`)
-    // .readFileSync(`inputData/15-map-36334.txt`, `ascii`)
     // .readFileSync(`inputData/15-map-18740.txt`, `ascii`)
-    // .readFileSync(`inputData/15-map-28944.txt`, `ascii`)
+    // .readFileSync(`inputData/15-map-27730.txt`, `ascii`)
     // .readFileSync(`inputData/15-map-27755.txt`, `ascii`)
+    // .readFileSync(`inputData/15-map-28944.txt`, `ascii`)
+    // .readFileSync(`inputData/15-map-36334.txt`, `ascii`)
+    // .readFileSync(`inputData/15-map-39514.txt`, `ascii`)
+    .readFileSync(`inputData/15-map-real.txt`, `ascii`)
     .split(eol)
     .forEach(line => {
       map.push(
@@ -119,7 +121,6 @@ const createUnit = node => {
           1
         )
         drawMap(map)
-        drawHps(1)
         process.exit()
       }
 
@@ -202,19 +203,25 @@ const createUnit = node => {
       // go through the destination tiles, find the closest, make sure it is navigable
       let min = Infinity
       myAvailableMoves.forEach(start => {
+        const bestPaths = unit.getAllPaths(start)
+        log(
+          `********************************** Getting all paths from ${
+            start.key
+          }`
+        )
+        if (!Object.keys(bestPaths).length) {
+          log(`No path???`)
+          console.log(Object.keys(bestPaths).length)
+        }
         destinationTiles.forEach(dt => {
           // TODO - do from each step in case 1 is better than another
-          const bestPaths = unit.getAllPaths(start)
-          if (!bestPaths.length) {
-            log(`No path???`)
-          }
           log(`Getting best path to ${dt.key}`)
           const path = unit.getBestPath(start, dt, bestPaths)
           if (path.length && min > path.length) {
             log(
-              `${path.length} steps from ${start.key} to ${dt.key} starts at ${
-                start.key
-              }`
+              `New min: ${path.length} steps from ${start.key} to ${
+                dt.key
+              } starts at ${start.key}`
             )
             min = path.length
             move = start
@@ -225,11 +232,12 @@ const createUnit = node => {
       return move
     },
     getBestPath: (start, end, allPaths) => {
+      const path = [start.key]
       if (start.key === end.key) {
         log(`Okay, well that was easy - start was the end`)
-        return [start.key]
+        return path
       }
-      const path = []
+
       let currentKey = end.key
       while (currentKey != start.key) {
         log(`Get best path, from ${start.key} -> ${currentKey}`)
@@ -245,7 +253,7 @@ const createUnit = node => {
     getAllPaths: start => {
       const unexplored = [start]
       bestPaths = {}
-      bestPaths[start.key] = null
+      bestPaths[start.key] = false
       while (unexplored.length) {
         log(`Node ${start.key} unexplored: ${unexplored.length}`)
 
@@ -287,18 +295,26 @@ const bury = unit => {
 const drawMap = map => {
   process.stdout.write('\033c')
   console.log()
-  log(`After round: ${roundCount}`, 1)
+  console.log(`After round: ${roundCount}`)
+  let sum = 0
   for (let y = 0; y < map.length; y++) {
+    const unitHps = []
     for (let x = 0; x < map[y].length; x++) {
       const unit = map[y][x].getUnit()
       if (unit) {
         process.stdout.write(unit.glyph)
+        unitHps.push(`${unit.glyph}(${unit.hp})`)
+        sum += unit.hp
       } else {
         process.stdout.write(map[y][x].floor)
       }
     }
+    if (unitHps.length) {
+      process.stdout.write(`  ${unitHps.join(', ')}`)
+    }
     process.stdout.write(eol)
   }
+  console.log(`result: ${sum} * ${roundCount}=${sum * roundCount}`)
   console.log()
 }
 
@@ -312,6 +328,7 @@ const round = map => {
       const unit = map[y][x].getUnit()
       if (unit) {
         unit.takeTurn(roundCount)
+        // drawMap(map)
       }
     }
   }
@@ -324,26 +341,13 @@ const units = {
   elves: [],
 }
 
-const drawHps = level => {
-  let sum = 0
-  units.elves.forEach(u => {
-    log(`${u.glyph}:${u.node.key} = ${u.hp}`, level)
-    sum += u.hp
-  })
-  units.goblins.forEach(u => {
-    log(`${u.glyph}:${u.node.key} = ${u.hp}`, level)
-    sum += u.hp
-  })
-  log(`result: ${sum} * ${roundCount}=${sum * roundCount}`, level)
-}
-
 createUnits(map)
 drawMap(map)
 
-while (true) {
+setInterval(() => {
   round(map)
   drawMap(map)
-  drawHps(0)
-}
+}, 1000)
 
+// 209836 is too low for real
 // 222912 is too high for real
