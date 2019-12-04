@@ -8,7 +8,7 @@ class Day2Tests {
     // 99 means that the program is finished and should immediately halt.
     // Once you're done processing an opcode, move to the next one by stepping forward 4 positions.
     @Test
-    fun `get fuel requirement for a single given mass`() {
+    fun `get known result`() {
         val input = "1,9,10,70,2,3,11,0,99,30,40,50".split(",").map{it.toInt()}.toMutableList()
 
         assertEquals(3500, Day2(input).execute())
